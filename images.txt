@@ -1,1 +1,6 @@
-wcjiang/linux-command:latest
+nginx:latest
+mysql:5.7
+redis:alpine
+node:20
+python:3.11
+alpine:latest
