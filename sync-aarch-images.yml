@@ -1,18 +1,14 @@
 name: Sync Multi-Arch Docker Images
 on:
-  workflow_dispatch:  # 允许手动运行
+  workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout code
+        uses: actions/checkout@v5
 
-      # 启用 Docker Buildx（支持多架构构建）
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      # 登录阿里云
       - name: Login to Aliyun ACR
         uses: docker/login-action@v3
         with:
@@ -20,23 +16,19 @@ jobs:
           username: 279414347@qq.com
           password: w900224j
 
-      # 读取 images.txt 并同步多架构镜像
-      - name: Pull and Push Multi-Arch Images
+      - name: Pull and Push ARM64 Images
         run: |
           while IFS= read -r image; do
             if [ -z "$image" ]; then continue; fi
+            echo "============================="
+            echo "正在同步: $image"
+            echo "============================="
             
-            echo "====================================="
-            echo "同步镜像: $image"
-            echo "====================================="
+            # 拉取 ARM64 镜像
+            docker pull --platform linux/arm64 "$image"
             
-            # 拉取多架构镜像
-            docker pull --platform linux/amd64,linux/arm64 "$image"
-            
-            # 打标签
-            ali_image="registry.cn-hangzhou.aliyuncs.com/wxl_githubdocker/$image"
-            
-            # 推送多架构镜像
-            docker tag "$image" "$ali_image"
-            docker push --all-platforms "$ali_image"
+            # 推送到阿里云
+            target="registry.cn-hangzhou.aliyuncs.com/wxl_githubdocker/$image"
+            docker tag "$image" "$target"
+            docker push "$target"
           done < images.txt
