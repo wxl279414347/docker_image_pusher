@@ -1,20 +1,19 @@
-- name: Pull and Push ARM64 Images
+- name: Pull and Push Images
   run: |
     while IFS= read -r image; do
-
       if [ -z "$image" ] || [[ "$image" =~ ^# ]]; then
         continue
       fi
       
-      echo "============================="
-      echo "正在同步: $image"
-      echo "============================="
+      echo "Syncing $image..."
       
-
-      docker pull --platform linux/arm64 "$image"
+      # 拉取镜像
+      docker pull "$image"
       
-
+      # 打阿里云标签
       target="registry.cn-hangzhou.aliyuncs.com/wxl_githubdocker/$image"
       docker tag "$image" "$target"
+      
+      # 推送到阿里云
       docker push "$target"
     done < images.txt
