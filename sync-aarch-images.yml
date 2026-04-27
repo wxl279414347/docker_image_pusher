@@ -1,19 +1,39 @@
-- name: Pull and Push Images
-  run: |
-    while IFS= read -r image; do
-      if [ -z "$image" ] || [[ "$image" =~ ^# ]]; then
-        continue
-      fi
-      
-      echo "Syncing $image..."
-      
-      # 拉取镜像
-      docker pull "$image"
-      
-      # 打阿里云标签
-      target="registry.cn-hangzhou.aliyuncs.com/wxl_githubdocker/$image"
-      docker tag "$image" "$target"
-      
-      # 推送到阿里云
-      docker push "$target"
-    done < images.txt
+name: Sync ARM Images to Aliyun
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+
+      # 登录阿里云 Docker 镜像仓库（带权限）
+      - name: Login to Aliyun ACR
+        uses: docker/login-action@v3
+        with:
+          registry: registry.cn-hangzhou.aliyuncs.com
+          username: 279414347@qq.com
+          password: w900224j
+
+      # 同步镜像（带权限、无报错）
+      - name: Pull and Push Images
+        run: |
+          while IFS= read -r image; do
+            if [ -z "$image" ] || [[ "$image" =~ ^# ]]; then
+              continue
+            fi
+
+            echo "====================================="
+            echo " 同步镜像：$image"
+            echo "====================================="
+
+            docker pull "$image"
+
+            target="registry.cn-hangzhou.aliyuncs.com/wxl_githubdocker/$image"
+            docker tag "$image" "$target"
+            docker push "$target"
+          done < images.txt
