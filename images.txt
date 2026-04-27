@@ -1,3 +1,4 @@
-mysql:5.7
-nginx:latest
-redis:7
+# 适配 ARM64 架构的镜像列表（直接同步到阿里云，在你的服务器上可直接运行）
+arm64v8/mysql:5.7
+arm64v8/nginx:latest
+arm64v8/redis:5
