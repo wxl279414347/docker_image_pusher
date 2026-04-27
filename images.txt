@@ -1,6 +1,3 @@
-nginx:latest
 mysql:5.7
-redis:alpine
-node:20
-python:3.11
-alpine:latest
+nginx:latest
+redis:7
