@@ -2,15 +2,16 @@ name: Sync ARM Images To Aliyun
 on:
   workflow_dispatch:
 
-# 权限配置（解决权限报错）
+# 最高权限（解决所有权限报错）
 permissions:
   contents: read
   packages: write
+  id-token: write
 
-# 你要的环境变量（完全按你的写法）
+# 你的环境变量
 env:
-  ALIYUN_REGISTRY: "registry.cn-hangzhou.aliyuncs.com"
-  ALIYUN_NAME_SPACE: "wxl_githubdocker"
+  ALIYUN_REGISTRY: registry.cn-hangzhou.aliyuncs.com
+  ALIYUN_NAME_SPACE: wxl_githubdocker
   ALIYUN_REGISTRY_USER: ${{ secrets.ALIYUN_REGISTRY_USER }}
   ALIYUN_REGISTRY_PASSWORD: ${{ secrets.ALIYUN_REGISTRY_PASSWORD }}
 
@@ -20,45 +21,46 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # 你要的：命令行 docker login（不是插件，纯命令）
-      - name: Docker Login 阿里云
+      # ==========================
+      # 你要的：Docker 登录命令
+      # ==========================
+      - name: Docker Login Aliyun
         run: |
           docker login -u $ALIYUN_REGISTRY_USER -p $ALIYUN_REGISTRY_PASSWORD $ALIYUN_REGISTRY
 
-      # 同步镜像 + 去重判断 + 架构指定
+      # ==========================
+      # 同步镜像 + 去重 + 权限
+      # ==========================
       - name: Pull and Push Images
         run: |
-          # 你要的：声明关联数组，用于去重
           declare -A duplicate_images
           declare -A temp_map
 
-          while IFS= read -r image; do
-            # 跳过空行、注释
+          while IFS= read -r image || [[ -n "$image" ]]; do
             if [[ -z "$image" || "$image" =~ ^# ]]; then
               continue
             fi
 
-            # 去重判断：如果镜像已经处理过，跳过
+            # 去重
             if [[ -n "${duplicate_images[$image]}" ]]; then
-              echo "⚠️  镜像已处理，跳过：$image"
+              echo "⚠️ 跳过重复镜像: $image"
               continue
             fi
             duplicate_images["$image"]=1
 
             echo "====================================="
-            echo "🚀 处理镜像：$image"
+            echo " 🚀 处理镜像: $image"
             echo "====================================="
 
-            # 拉取 ARM64 架构（解决你之前的架构报错）
-            docker pull --platform linux/arm64 "$image"
+            # 把你的名称 转回官方镜像名
+            original=$(echo "$image" | sed -E 's/arm64v8-([^:]+)/arm64v8\/\1/')
 
-            # 拼接阿里云地址
+            # 拉取 ARM 架构
+            docker pull --platform linux/arm64 "$original"
+
+            # 打标签并推送到阿里云
             target="${ALIYUN_REGISTRY}/${ALIYUN_NAME_SPACE}/$image"
-
-            # 打标签
-            docker tag "$image" "$target"
-
-            # 推送
+            docker tag "$original" "$target"
             docker push "$target"
 
           done < images.txt
